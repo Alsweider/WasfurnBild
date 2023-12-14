@@ -30,6 +30,10 @@ public:
     QString cleanUpPath(const QString&);
 
 
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+
+
 private slots:
     void on_pushButton_clicked();
 
@@ -40,14 +44,11 @@ private slots:
     void on_pushButton_4_clicked();
 
 
-
-
 private:
     Ui::MainWindow *ui;
     QPixmap desktopBackground;
     void bildLaden();
     void textLaden();
-
 
 
 };

@@ -9,7 +9,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     textLaden();
     bildLaden();
-
 }
 
 MainWindow::~MainWindow()
@@ -46,7 +45,6 @@ QString MainWindow::getDesktopBackgroundFileName() {
     return wallpaperPath;
 }
 
-
 QString MainWindow::cleanUpPath(const QString &path) {
     //Nur erlaubte Zeichen beibehalten (A-Z, a-z, 0-9, \, :, ., -)
     QString allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÁÀÂÇÈÉÊËÎÏÔŒÖÙÛÜẞÐÍÓÚÝŸÞÆØabcdefghijklmnopqrstuvwxyzäáàâåöüßçðéèêëíîïóôœúùûýÿþæø0123456789\\:.-/_, ";
@@ -70,9 +68,7 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButton_3_clicked()
 {
-    //QString imagePath = getDesktopBackgroundFileName();
-
-    //Nehmen wir lieber den Wert aus dem Label, um Verwirrung zu vermeiden
+    //Nehmen wir den Wert aus dem Label
     QString imagePath = ui->lineEdit->text();
 
     //Überprüfen, ob der Dateipfad nicht leer ist
@@ -89,8 +85,9 @@ void MainWindow::on_pushButton_4_clicked()
 
     //Bild in Anzeigetafel laden
 void MainWindow::bildLaden(){
+    QSize neueGroesse = ui->pushButton_5->size();
     desktopBackground.load(getDesktopBackgroundFileName());
-    desktopBackground = desktopBackground.scaled(200, 200, Qt::KeepAspectRatio);
+    desktopBackground = desktopBackground.scaled(neueGroesse, Qt::KeepAspectRatio);
     ui->pushButton_5->setText("");
     ui->pushButton_5->setIcon(QIcon(desktopBackground));
     ui->pushButton_5->setIconSize(desktopBackground.size());
@@ -98,9 +95,7 @@ void MainWindow::bildLaden(){
 
 //Text in Textfeld laden
 void MainWindow::textLaden(){
-
     ui->lineEdit->setText(getDesktopBackgroundFileName());
-
     //Wenn der Pfad im Feld ist, aktiviere Knöpfe zum Kopieren und Öffnen
     if (ui->lineEdit->text() != ""){
         ui->pushButton_2->setEnabled(true);
@@ -108,3 +103,14 @@ void MainWindow::textLaden(){
     }
 }
 
+void MainWindow::resizeEvent(QResizeEvent *event) {
+    QSize neueGroesse = ui->pushButton_5->size();
+    //Lade das Bild aus dem Textfeld
+    desktopBackground.load(ui->lineEdit->text());
+    desktopBackground = desktopBackground.scaled(neueGroesse, Qt::KeepAspectRatio);
+    ui->pushButton_5->setText("");
+    ui->pushButton_5->setIcon(QIcon(desktopBackground));
+    ui->pushButton_5->setIconSize(desktopBackground.size());
+
+    QMainWindow::resizeEvent(event); //Rufe die Basisimplementierung auf
+}
