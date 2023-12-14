@@ -8,7 +8,8 @@
 #include <QPixmap>
 #include <QClipboard>
 #include <QDesktopServices>
-
+#include <QWidget>
+#include <QMouseEvent>
 
 
 
@@ -28,6 +29,7 @@ public:
     QString getDesktopBackgroundFileName();
     QString cleanUpPath(const QString&);
 
+
 private slots:
     void on_pushButton_clicked();
 
@@ -37,9 +39,16 @@ private slots:
 
     void on_pushButton_4_clicked();
 
+
+
+
 private:
     Ui::MainWindow *ui;
     QPixmap desktopBackground;
+    void bildLaden();
+    void textLaden();
+
+
 
 };
 #endif // MAINWINDOW_H

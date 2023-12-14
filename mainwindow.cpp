@@ -6,6 +6,10 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    textLaden();
+    bildLaden();
+
 }
 
 MainWindow::~MainWindow()
@@ -15,19 +19,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
-    ui->lineEdit->setText(getDesktopBackgroundFileName());
-
-    //Wenn der Pfad im Feld ist, aktiviere Knöpfe zum Kopieren und Öffnen
-    if (ui->lineEdit->text() != ""){
-        ui->pushButton_2->setEnabled(true);
-        ui->pushButton_3->setEnabled(true);
-    }
-
-    //Bild laden
-    desktopBackground.load(getDesktopBackgroundFileName());
-    desktopBackground = desktopBackground.scaled(200, 200, Qt::KeepAspectRatio);
-
-    ui->labelImage->setPixmap(desktopBackground);
+    textLaden();
+    bildLaden();
 }
 
 QString MainWindow::getDesktopBackgroundFileName() {
@@ -56,7 +49,7 @@ QString MainWindow::getDesktopBackgroundFileName() {
 
 QString MainWindow::cleanUpPath(const QString &path) {
     //Nur erlaubte Zeichen beibehalten (A-Z, a-z, 0-9, \, :, ., -)
-    QString allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜẞabcdefghijklmnopqrstuvwxyzäöüß0123456789\\:.-/_, ";
+    QString allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÁÀÂÇÈÉÊËÎÏÔŒÖÙÛÜẞÐÍÓÚÝŸÞÆØabcdefghijklmnopqrstuvwxyzäáàâåöüßçðéèêëíîïóôœúùûýÿþæø0123456789\\:.-/_, ";
 
     QString cleanedPath;
     for (const QChar &ch : path) {
@@ -77,7 +70,10 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButton_3_clicked()
 {
-    QString imagePath = getDesktopBackgroundFileName();
+    //QString imagePath = getDesktopBackgroundFileName();
+
+    //Nehmen wir lieber den Wert aus dem Label, um Verwirrung zu vermeiden
+    QString imagePath = ui->lineEdit->text();
 
     //Überprüfen, ob der Dateipfad nicht leer ist
     if (!imagePath.isEmpty()) {
@@ -89,5 +85,26 @@ void MainWindow::on_pushButton_3_clicked()
 void MainWindow::on_pushButton_4_clicked()
 {
     this->close();
+}
+
+    //Bild in Anzeigetafel laden
+void MainWindow::bildLaden(){
+    desktopBackground.load(getDesktopBackgroundFileName());
+    desktopBackground = desktopBackground.scaled(200, 200, Qt::KeepAspectRatio);
+    ui->pushButton_5->setText("");
+    ui->pushButton_5->setIcon(QIcon(desktopBackground));
+    ui->pushButton_5->setIconSize(desktopBackground.size());
+}
+
+//Text in Textfeld laden
+void MainWindow::textLaden(){
+
+    ui->lineEdit->setText(getDesktopBackgroundFileName());
+
+    //Wenn der Pfad im Feld ist, aktiviere Knöpfe zum Kopieren und Öffnen
+    if (ui->lineEdit->text() != ""){
+        ui->pushButton_2->setEnabled(true);
+        ui->pushButton_3->setEnabled(true);
+    }
 }
 
