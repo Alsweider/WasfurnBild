@@ -10,6 +10,7 @@
 #include <QDesktopServices>
 #include <QWidget>
 #include <QMouseEvent>
+#include <QTimer>
 
 
 
@@ -43,12 +44,17 @@ private slots:
 
     void on_pushButton_4_clicked();
 
+    void aktualisierungsPulsschlag();
+
+    void on_checkBox_stateChanged(int arg1);
 
 private:
     Ui::MainWindow *ui;
     QPixmap desktopBackground;
     void bildLaden();
     void textLaden();
+    QTimer *timer;
+
 
 
 };

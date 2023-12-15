@@ -9,6 +9,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     textLaden();
     bildLaden();
+
+    //Pulsgeber für die automatische Aktualisierung
+    timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(aktualisierungsPulsschlag()));
+
 }
 
 MainWindow::~MainWindow()
@@ -25,7 +30,7 @@ void MainWindow::on_pushButton_clicked()
 QString MainWindow::getDesktopBackgroundFileName() {
     qDebug() << "Funktion getDesktopBackgroundFileName() aufgerufen ";
 
-    // Öffnen der Registry-Schlüssel
+    //Öffnen der Registry-Schlüssel
     QSettings registrySettings("HKEY_CURRENT_USER\\Control Panel\\Desktop", QSettings::NativeFormat);
 
     //QString zur Aufnahme des neuen Pfades
@@ -47,7 +52,7 @@ QString MainWindow::getDesktopBackgroundFileName() {
 
 QString MainWindow::cleanUpPath(const QString &path) {
     //Nur erlaubte Zeichen beibehalten (A-Z, a-z, 0-9, \, :, ., -)
-    QString allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÁÀÂÇÈÉÊËÎÏÔŒÖÙÛÜẞÐÍÓÚÝŸÞÆØabcdefghijklmnopqrstuvwxyzäáàâåöüßçðéèêëíîïóôœúùûýÿþæø0123456789\\:.-/_, ";
+    QString allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÁÀÂÃÇÈÉÊËÎÏÔŒÖÕÙÛÜẞÐÍÓÚÝŸÞÆØabcdefghijklmnoõpqrstuvwxyzäáàâåãöüßçðéèêëíîïóôœúùûýÿþæø0123456789\\:.-/_, ";
 
     QString cleanedPath;
     for (const QChar &ch : path) {
@@ -83,6 +88,12 @@ void MainWindow::on_pushButton_4_clicked()
     this->close();
 }
 
+void MainWindow::aktualisierungsPulsschlag()
+{
+    textLaden();
+    bildLaden();
+}
+
     //Bild in Anzeigetafel laden
 void MainWindow::bildLaden(){
     QSize neueGroesse = ui->pushButton_5->size();
@@ -114,3 +125,14 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
 
     QMainWindow::resizeEvent(event); //Rufe die Basisimplementierung auf
 }
+
+//Häkchen für die automatische Aktualisierung
+void MainWindow::on_checkBox_stateChanged(int arg1)
+{
+    if(ui->checkBox->isChecked()){
+        timer->start(1000);
+    } else{
+        timer->stop();
+    }
+}
+

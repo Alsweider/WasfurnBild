@@ -11,35 +11,32 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>WasfurnBild v0.0.3</string>
+   <string>WasfurnBild v0.0.4</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QLineEdit" name="lineEdit"/>
-    </item>
-    <item row="1" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout">
+    <item row="4" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
-       <widget class="QPushButton" name="pushButton">
-        <property name="toolTip">
-         <string>Liest den Pfad des aktuellen Desktop-Hintergrundbildes aus der Registry.</string>
-        </property>
-        <property name="text">
-         <string>Pfad auslesen</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="pushButton_3">
         <property name="enabled">
          <bool>false</bool>
         </property>
         <property name="toolTip">
-         <string>Kopiert den Pfad in die Zwischenablage.</string>
+         <string>Öffnet das Bild im System-Bildbetrachter.</string>
         </property>
         <property name="text">
-         <string>Pfad kopieren</string>
+         <string>Bild öffnen</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_4">
+        <property name="toolTip">
+         <string>Schließt das Programm.</string>
+        </property>
+        <property name="text">
+         <string>Beenden</string>
         </property>
        </widget>
       </item>
@@ -73,32 +70,45 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <item row="0" column="0">
+     <widget class="QLineEdit" name="lineEdit"/>
+    </item>
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QPushButton" name="pushButton_3">
+       <widget class="QPushButton" name="pushButton">
+        <property name="toolTip">
+         <string>Liest den Pfad des aktuellen Desktop-Hintergrundbildes aus der Registry.</string>
+        </property>
+        <property name="text">
+         <string>Pfad auslesen</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_2">
         <property name="enabled">
          <bool>false</bool>
         </property>
         <property name="toolTip">
-         <string>Öffnet das Bild im System-Bildbetrachter.</string>
+         <string>Kopiert den Pfad in die Zwischenablage.</string>
         </property>
         <property name="text">
-         <string>Bild öffnen</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_4">
-        <property name="toolTip">
-         <string>Schließt das Programm.</string>
-        </property>
-        <property name="text">
-         <string>Beenden</string>
+         <string>Pfad kopieren</string>
         </property>
        </widget>
       </item>
      </layout>
+    </item>
+    <item row="3" column="0">
+     <widget class="QCheckBox" name="checkBox">
+      <property name="toolTip">
+       <string>Wenn aktiviert, liest das Programm das aktuelle Hintergrundbild selbständig im Sekundentakt ein.</string>
+      </property>
+      <property name="text">
+       <string>Kontinuierlich abgleichen</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
