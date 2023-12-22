@@ -50,19 +50,27 @@ QString MainWindow::getDesktopBackgroundFileName() {
     return wallpaperPath;
 }
 
+//Eingelesenen Registry-Wert von Zeichen außerhalb des eigentlichen Bildpfades bereinigen
 QString MainWindow::cleanUpPath(const QString &path) {
-    //Nur erlaubte Zeichen beibehalten (A-Z, a-z, 0-9, \, :, ., -)
-    QString allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÁÀÂÃÇÈÉÊËÎÏÔŒÖÕÙÛÜẞÐÍÓÚÝŸÞÆØabcdefghijklmnoõpqrstuvwxyzäáàâåãöüßçðéèêëíîïóôœúùûýÿþæø0123456789\\:.-/_, ";
 
     QString cleanedPath;
-    for (const QChar &ch : path) {
-        if (allowedChars.contains(ch)) {
-            cleanedPath.append(ch);
+    bool foundDriveLetter = false;
+
+    for (int i = 0; i < path.length(); ++i) {
+        QChar ch = path.at(i);
+        //Abfrage ob Laufwerksbuchstabe gefolgt von Doppelpunkt und Rückstrich gefunden wurde
+        if (ch.isUpper() && i + 2 < path.length() && path.at(i + 1) == QLatin1Char(':') && path.at(i + 2) == QLatin1Char('\\') && !foundDriveLetter){
+            foundDriveLetter = true;
+            cleanedPath.clear();
         }
+
+        cleanedPath.append(ch);
     }
 
     return cleanedPath;
 }
+
+
 
 void MainWindow::on_pushButton_2_clicked()
 {
