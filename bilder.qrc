@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/new/bilder">
+        <file>bundesflagge.jpg</file>
+        <file>unionjack.jpg</file>
+        <file>drapeautricolore.jpg</file>
+    </qresource>
+</RCC>

@@ -8,7 +8,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     textLaden();
+    systemspracheEinstellen();
     bildLaden();
+    graphikenLaden();
 
     //Pulsgeber für die automatische Aktualisierung
     timer = new QTimer(this);
@@ -141,6 +143,104 @@ void MainWindow::on_checkBox_stateChanged(int arg1)
         timer->start(1000);
     } else{
         timer->stop();
+    }
+}
+
+void MainWindow::graphikenLaden(){
+    //Größen für die Flaggen festlegen
+    QSize neueGroesseDeutsch = ui->pushButtonDeutsch->size();
+    QSize neueGroesseFranzoesisch = ui->pushButtonFranzoesisch->size();
+    QSize neueGroesseEnglisch = ui->pushButtonEnglisch->size();
+
+
+    //Texte leeren
+    ui->pushButtonDeutsch->setText("");
+    ui->pushButtonFranzoesisch->setText("");
+    ui->pushButtonEnglisch->setText("");
+
+    //Flaggen hissen und Größen anpassen
+    ui->pushButtonDeutsch->setIcon(QIcon(":/new/bilder/bundesflagge.jpg"));
+    ui->pushButtonDeutsch->setIconSize(neueGroesseDeutsch);
+
+    ui->pushButtonFranzoesisch->setIcon(QIcon(":/new/bilder/drapeautricolore.jpg"));
+    ui->pushButtonFranzoesisch->setIconSize(neueGroesseFranzoesisch);
+
+    ui->pushButtonEnglisch->setIcon(QIcon(":/new/bilder/unionjack.jpg"));
+    ui->pushButtonEnglisch->setIconSize(neueGroesseEnglisch);
+
+    //Flaggen an Knöpfe anpassen
+    ui->pushButtonDeutsch->setStyleSheet("QPushButton { border-image: url(:/new/bilder/bundesflagge.jpg) 0 0 0 0 stretch stretch; }");
+    ui->pushButtonFranzoesisch->setStyleSheet("QPushButton { border-image: url(:/new/bilder/drapeautricolore.jpg) 0 0 0 0 stretch stretch; }");
+    ui->pushButtonEnglisch->setStyleSheet("QPushButton { border-image: url(:/new/bilder/unionjack.jpg) 0 0 0 0 stretch stretch; }");
+}
+
+
+void MainWindow::on_pushButtonEnglisch_clicked()
+{
+    ui->pushButton->setText("Read path");
+    ui->pushButton->setToolTip("Reads the path of the current desktop wallpaper from the registry.");
+    ui->pushButton_2->setText("Copy path");
+    ui->pushButton_2->setToolTip("Copies the path to the clipboard.");
+    ui->pushButton_3->setText("Open picture");
+    ui->pushButton_3->setToolTip("Opens the image in the system image viewer.");
+    ui->pushButton_4->setText("Quit");
+    ui->pushButton_4->setToolTip("Closes the programme.");
+    //ui->pushButton_5->setText("Image");
+    ui->pushButton_5->setToolTip("Click to open image in system image viewer.");
+    ui->checkBox->setText("Reload automatically");
+    ui->checkBox->setToolTip("If activated, the programme automatically reads the current background image every second.");
+    qDebug() << "Englisch festgelegt";
+}
+
+
+void MainWindow::on_pushButtonDeutsch_clicked()
+{
+        ui->pushButton->setText("Pfad auslesen");
+        ui->pushButton->setToolTip("Liest den Pfad des aktuellen Desktop-Hintergrundbildes aus der Registry.");
+        ui->pushButton_2->setText("Pfad kopieren");
+        ui->pushButton_2->setToolTip("Kopiert den Pfad in die Zwischenablage.");
+        ui->pushButton_3->setText("Bild öffnen");
+        ui->pushButton_3->setToolTip("Öffnet das Bild im System-Bildbetrachter.");
+        ui->pushButton_4->setText("Beenden");
+        ui->pushButton_4->setToolTip("Schließt das Programm.");
+        //ui->pushButton_5->setText("Bild");
+        ui->pushButton_5->setToolTip("Klicken um Bild im System-Bildbetrachter zu öffnen.");
+        ui->checkBox->setText("Kontinuierlich abgleichen");
+        ui->checkBox->setToolTip("Wenn aktiviert, liest das Programm das aktuelle Hintergrundbild selbständig im Sekundentakt ein.");
+        qDebug() << "Deutsch festgelegt";
+}
+
+
+void MainWindow::on_pushButtonFranzoesisch_clicked()
+{
+    ui->pushButton->setText("Lire le chemin");
+    ui->pushButton->setToolTip("Lit le chemin du fond d'écran actuel à partir du registre.");
+    ui->pushButton_2->setText("Copier le chemin");
+    ui->pushButton_2->setToolTip("Copie le chemin dans le presse-papiers.");
+    ui->pushButton_3->setText("Ouvrir l'image");
+    ui->pushButton_3->setToolTip("Ouvre l'image dans la visionneuse d'images système.");
+    ui->pushButton_4->setText("Quitter");
+    ui->pushButton_4->setToolTip("Ferme le programme.");
+    //ui->pushButton_5->setText("Image");
+    ui->pushButton_5->setToolTip("Cliquez pour ouvrir l'image dans la visionneuse d'images système.");
+    ui->checkBox->setText("Synchroniser automatiquement");
+    ui->checkBox->setToolTip("Lorsqu'il est activé, le programme lit automatiquement l'arrière-plan actuel à intervalles d'une seconde.");
+    qDebug() << "Französisch festgelegt";
+}
+
+void MainWindow::systemspracheEinstellen(){
+    qDebug() << "Spracheinstellung aufgerufen";
+    QLocale systemLocale = QLocale::system();
+
+    if (systemLocale.language() == QLocale::German) {
+        on_pushButtonDeutsch_clicked();
+    } else if (systemLocale.language() == QLocale::English) {
+        on_pushButtonEnglisch_clicked();
+    } else if (systemLocale.language() == QLocale::French){
+        on_pushButtonFranzoesisch_clicked();
+    } else {
+        qDebug() << "Systemsprache nicht verfügbar";
+        on_pushButtonDeutsch_clicked();
     }
 }
 

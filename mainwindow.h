@@ -11,7 +11,8 @@
 #include <QWidget>
 #include <QMouseEvent>
 #include <QTimer>
-#include <QImageReader>
+//#include <QImageReader>
+#include <QLocale>
 
 
 
@@ -49,12 +50,21 @@ private slots:
 
     void on_checkBox_stateChanged(int arg1);
 
+    void on_pushButtonEnglisch_clicked();
+
+    void on_pushButtonDeutsch_clicked();
+
+    void on_pushButtonFranzoesisch_clicked();
+
 private:
     Ui::MainWindow *ui;
     QPixmap desktopBackground;
     void bildLaden();
     void textLaden();
+    void graphikenLaden();
+    void systemspracheEinstellen();
     QTimer *timer;
+
 
 
 
