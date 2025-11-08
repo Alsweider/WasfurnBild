@@ -1,5 +1,7 @@
 QT       += core gui
 
+TARGET      =   WasfurnBild
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
@@ -26,6 +28,14 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     bilder.qrc
 
+VERSION     =   0.1.1
+
+DEFINES     +=  APP_VERSION=\\\"$$VERSION\\\"
+DEFINES     += APP_NAME=\\\"$$TARGET\\\"
+
+win32:QMAKE_TARGET_COMPANY      = Alsweider
+win32:QMAKE_TARGET_PRODUCT      = WasfurnBild
+win32:QMAKE_TARGET_DESCRIPTION  = WasfurnBild: Desktop Background Image Reader
 
 
 

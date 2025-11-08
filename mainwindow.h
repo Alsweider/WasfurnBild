@@ -56,14 +56,17 @@ private slots:
 
     void on_pushButtonFranzoesisch_clicked();
 
+    void on_comboBoxSprache_currentIndexChanged(int index);
+
 private:
     Ui::MainWindow *ui;
     QPixmap desktopBackground;
     void bildLaden();
     void textLaden();
-    void graphikenLaden();
+    //void graphikenLaden();
     void systemspracheEinstellen();
     QTimer *timer;
+    void progInfoSetzen();
 
 
 

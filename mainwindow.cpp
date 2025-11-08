@@ -7,10 +7,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    progInfoSetzen();
     textLaden();
     systemspracheEinstellen();
     bildLaden();
-    graphikenLaden();
+    //graphikenLaden();
 
     //Pulsgeber für die automatische Aktualisierung
     timer = new QTimer(this);
@@ -139,6 +140,8 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
 //Häkchen für die automatische Aktualisierung
 void MainWindow::on_checkBox_stateChanged(int arg1)
 {
+    Q_UNUSED(arg1);
+
     if(ui->checkBox->isChecked()){
         timer->start(1000);
     } else{
@@ -146,33 +149,33 @@ void MainWindow::on_checkBox_stateChanged(int arg1)
     }
 }
 
-void MainWindow::graphikenLaden(){
-    //Größen für die Flaggen festlegen
-    QSize neueGroesseDeutsch = ui->pushButtonDeutsch->size();
-    QSize neueGroesseFranzoesisch = ui->pushButtonFranzoesisch->size();
-    QSize neueGroesseEnglisch = ui->pushButtonEnglisch->size();
+// void MainWindow::graphikenLaden(){
+//     //Größen für die Flaggen festlegen
+//     QSize neueGroesseDeutsch = ui->pushButtonDeutsch->size();
+//     QSize neueGroesseFranzoesisch = ui->pushButtonFranzoesisch->size();
+//     QSize neueGroesseEnglisch = ui->pushButtonEnglisch->size();
 
 
-    //Texte leeren
-    ui->pushButtonDeutsch->setText("");
-    ui->pushButtonFranzoesisch->setText("");
-    ui->pushButtonEnglisch->setText("");
+//     //Texte leeren
+//     ui->pushButtonDeutsch->setText("");
+//     ui->pushButtonFranzoesisch->setText("");
+//     ui->pushButtonEnglisch->setText("");
 
-    //Flaggen hissen und Größen anpassen
-    ui->pushButtonDeutsch->setIcon(QIcon(":/new/bilder/bundesflagge.jpg"));
-    ui->pushButtonDeutsch->setIconSize(neueGroesseDeutsch);
+//     //Flaggen hissen und Größen anpassen
+//     ui->pushButtonDeutsch->setIcon(QIcon(":/new/bilder/bundesflagge.jpg"));
+//     ui->pushButtonDeutsch->setIconSize(neueGroesseDeutsch);
 
-    ui->pushButtonFranzoesisch->setIcon(QIcon(":/new/bilder/drapeautricolore.jpg"));
-    ui->pushButtonFranzoesisch->setIconSize(neueGroesseFranzoesisch);
+//     ui->pushButtonFranzoesisch->setIcon(QIcon(":/new/bilder/drapeautricolore.jpg"));
+//     ui->pushButtonFranzoesisch->setIconSize(neueGroesseFranzoesisch);
 
-    ui->pushButtonEnglisch->setIcon(QIcon(":/new/bilder/unionjack.jpg"));
-    ui->pushButtonEnglisch->setIconSize(neueGroesseEnglisch);
+//     ui->pushButtonEnglisch->setIcon(QIcon(":/new/bilder/unionjack.jpg"));
+//     ui->pushButtonEnglisch->setIconSize(neueGroesseEnglisch);
 
-    //Flaggen an Knöpfe anpassen
-    ui->pushButtonDeutsch->setStyleSheet("QPushButton { border-image: url(:/new/bilder/bundesflagge.jpg) 0 0 0 0 stretch stretch; }");
-    ui->pushButtonFranzoesisch->setStyleSheet("QPushButton { border-image: url(:/new/bilder/drapeautricolore.jpg) 0 0 0 0 stretch stretch; }");
-    ui->pushButtonEnglisch->setStyleSheet("QPushButton { border-image: url(:/new/bilder/unionjack.jpg) 0 0 0 0 stretch stretch; }");
-}
+//     //Flaggen an Knöpfe anpassen
+//     ui->pushButtonDeutsch->setStyleSheet("border-image: url(:/new/bilder/bundesflagge.jpg) 0 0 0 0 stretch stretch;");
+//     ui->pushButtonFranzoesisch->setStyleSheet("border-image: url(:/new/bilder/drapeautricolore.jpg) 0 0 0 0 stretch stretch;");
+//     ui->pushButtonEnglisch->setStyleSheet("border-image: url(:/new/bilder/unionjack.jpg) 0 0 0 0 stretch stretch;");
+// }
 
 
 void MainWindow::on_pushButtonEnglisch_clicked()
@@ -242,5 +245,28 @@ void MainWindow::systemspracheEinstellen(){
         qDebug() << "Systemsprache nicht verfügbar";
         on_pushButtonDeutsch_clicked();
     }
+}
+
+
+void MainWindow::on_comboBoxSprache_currentIndexChanged(int index)
+{
+    if (index == 0){
+        on_pushButtonDeutsch_clicked();
+    } else if (index == 1){
+        on_pushButtonFranzoesisch_clicked();
+    } else if (index == 2){
+        on_pushButtonEnglisch_clicked();
+    } else {
+        return;
+    }
+}
+
+
+void MainWindow::progInfoSetzen(){
+    QCoreApplication::setOrganizationName("Alsweider");
+    QCoreApplication::setOrganizationDomain("https://github.com/Alsweider");
+    QCoreApplication::setApplicationName("WasfurnBild");
+    QCoreApplication::setApplicationVersion(QString(APP_VERSION));
+    this->setWindowTitle(QString("%1 v%2").arg(APP_NAME, APP_VERSION));
 }
 
