@@ -326,12 +326,11 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
         qDebug() << "Suchschaltfläche wieder aktiviert.";
     });
 
-    // QString imagePath = convertJfifToJpeg(ui->lineEdit->text().trimmed());
     QString imagePath = ui->lineEdit->text().trimmed();
     imagePath.remove('"');
     qDebug() << "Pfad zum Bild: " << imagePath;
+
     // Tineye kann jfif nicht verarbeiten, also eine Temp-Kopie als JPEG speichern
-    //imagePath = convertJfifToJpeg(imagePath);
     QString tempPath = convertJfifToJpeg(imagePath);
 
     if (tempPath.isEmpty()) {
@@ -358,7 +357,6 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
 
     QProcess *curlProcess = new QProcess(this);
 
-    // connect(curlProcess, &QProcess::finished, this, [this, curlProcess, tempPath]() {
     connect(curlProcess, &QProcess::finished, this,
             [this, curlProcess, tempPath, buttonGuard = std::move(buttonGuard)]() mutable {
         QByteArray output = curlProcess->readAllStandardOutput().trimmed();
@@ -376,9 +374,18 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
 
         // Ist das überhaupt eine URL?
         if (!url.startsWith("http")) {
-            //Bisschen lang für die MessageBox, wenn eine Fehlerseite mit dem ganzen Code geliefert wird. Evtl. ändern.
-            QMessageBox::warning(this, "Fehler", "Upload fehlgeschlagen oder keine gültige URL erhalten:\n" + url);
-            qDebug() << "Ungültige Upload-Antwort: " << url;
+            QString shortMsg = url.left(200); // Nur die ersten 200 Zeichen für Anzeige, sonst kommt die ganze Verwandtschaft
+            if (url.length() > 200)
+                shortMsg += "...";
+
+            QMessageBox::warning(
+                this,
+                "Fehler",
+                "Upload fehlgeschlagen oder keine gültige URL erhalten.\n\n"
+                "Serverantwort (gekürzt):\n" + shortMsg
+                );
+
+            qDebug() << "Ungültige Upload-Antwort (vollständig):" << url;
             return;
         }
 
@@ -392,12 +399,25 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
 
         // Lambda zur wiederholten Prüfung der Verfügbarkeit
         std::shared_ptr<std::function<void()>> checkAvailability = std::make_shared<std::function<void()>>();
-        *checkAvailability = [this, qurl, urlCopy, checkAvailability]() {
-            qDebug() << "Verfügbarkeitsprüfung gestartet...";
+
+        int maxAttempts = 10;
+        int delayMs = 500; // Startwert für die Wartezeit
+        int maxDelayMs = 6000;
+        int attemptCount = 0;
+
+        *checkAvailability = [this, qurl, urlCopy, checkAvailability, maxAttempts, &attemptCount, delayMs, maxDelayMs]() mutable {
+            if (attemptCount >= maxAttempts) {
+                ui->statusBar->showMessage("Bild nach mehreren Versuchen nicht erreichbar.");
+                qDebug() << "Maximale Anzahl der Prüfungen erreicht.";
+                return;
+            }
+            attemptCount++;
+            qDebug() << "Verfügbarkeitsprüfung Versuch:" << attemptCount;
+
             QNetworkRequest request(qurl);
             QNetworkReply *reply = m_networkManager.head(request);
 
-            connect(reply, &QNetworkReply::finished, this, [this, reply, urlCopy, checkAvailability]() {
+            connect(reply, &QNetworkReply::finished, this, [this, reply, urlCopy, checkAvailability, &attemptCount, &delayMs, maxDelayMs, maxAttempts]() mutable {
                 if (reply->error() == QNetworkReply::NoError) {
                     qDebug() << "Netzwerkantwort erhalten, Bild erreichbar.";
                     QString tineyeUrl = QString("https://tineye.com/search?url=%1")
@@ -406,9 +426,12 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
                     ui->statusBar->showMessage("Tineye-Suche geöffnet.", 7000);
                     qDebug() << "Tineye geöffnet";
                 } else {
-                    ui->statusBar->showMessage("Prüfe Erreichbarkeit des Bildes erneut...");
-                    qDebug() << "Prüfe Erreichbarkeit des Bildes im Netz...";
-                    QTimer::singleShot(500, this, [checkAvailability]() { (*checkAvailability)(); });
+                    QString statusMsg = QString("Prüfe Erreichbarkeit des Bildes erneut... Versuch %1/%2").arg(attemptCount, maxAttempts);
+                    ui->statusBar->showMessage(statusMsg);
+                    qDebug() << "Fehler beim Zugriff, erneute Prüfung in" << delayMs << "ms";
+                    // Exponentielles Backoff: Verzögerung verdoppeln, bis zu 6 Sekunden
+                    delayMs = qMin(delayMs * 2, maxDelayMs);
+                    QTimer::singleShot(delayMs, this, [checkAvailability]() { (*checkAvailability)(); });
                 }
                 reply->deleteLater();
             });
@@ -428,8 +451,6 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
     });
 
     curlProcess->start("curl", arguments);
-
-
 }
 
 
