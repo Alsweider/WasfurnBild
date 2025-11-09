@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
-#include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QHttpMultiPart>
@@ -16,6 +15,12 @@
 #include <QMimeDatabase>
 #include <QRegularExpression>
 #include <QProcess>
+#include <QTimer>
+#include <functional>
+#include <QImage>
+#include <QTemporaryFile>
+#include <QStandardPaths>
+
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -312,65 +317,153 @@ void MainWindow::progInfoSetzen(){
 
 void MainWindow::on_pushButtonSuchmaschine_clicked()
 {
-    ui->statusBar->showMessage("Bildersuche gestartet...");
+    ui->pushButtonSuchmaschine->setEnabled(false);
+    ui->statusBar->showMessage("Bildsuche gestartet...");
+
+    // RAII-Schutz: stellt sicher, dass die Schaltfläche beim Verlassen wieder aktiviert wird
+    auto buttonGuard = qScopeGuard([this]() {
+        ui->pushButtonSuchmaschine->setEnabled(true);
+        qDebug() << "Suchschaltfläche wieder aktiviert.";
+    });
+
+    // QString imagePath = convertJfifToJpeg(ui->lineEdit->text().trimmed());
     QString imagePath = ui->lineEdit->text().trimmed();
-    imagePath.remove('"'); // Entfernt mögliche Anführungszeichen
-    if (imagePath.isEmpty()) {
+    imagePath.remove('"');
+    qDebug() << "Pfad zum Bild: " << imagePath;
+    // Tineye kann jfif nicht verarbeiten, also eine Temp-Kopie als JPEG speichern
+    //imagePath = convertJfifToJpeg(imagePath);
+    QString tempPath = convertJfifToJpeg(imagePath);
+
+    if (tempPath.isEmpty()) {
         QMessageBox::warning(this, "Fehler", "Kein Bildpfad vorhanden.");
         return;
     } else {
-        ui->statusBar->showMessage("Pfad gefunden...");
+        qDebug() << "Bildpfad gefunden (tempPath): " << tempPath;
     }
 
-    QFileInfo fi(imagePath);
+    QFileInfo fi(tempPath);
     if (!fi.exists() || !fi.isFile()) {
         QMessageBox::warning(this, "Fehler", "Bilddatei existiert nicht.");
         return;
     } else {
-        ui->statusBar->showMessage("Lokale Datei gefunden...");
+        qDebug() << "Lokales Bild gefunden: " << fi;
     }
 
-    // curl-Befehl zusammenbauen
     QStringList arguments;
-    arguments << "-F" << QString("reqtype=fileupload")
-              << "-F" << QString("time=1h")
-              << "-F" << QString("fileToUpload=@%1").arg(imagePath)
+    arguments << "-F" << "reqtype=fileupload"
+              << "-F" << "time=1h"
+              << "-F" << QString("fileToUpload=@%1").arg(tempPath)
               << "https://litterbox.catbox.moe/resources/internals/api.php";
-
-    ui->statusBar->showMessage("cURL-Befehl zusammengestellt...");
+    qDebug() << "cURL zusammengestellt: " << arguments;
 
     QProcess *curlProcess = new QProcess(this);
-    connect(curlProcess, &QProcess::finished, this, [=](int exitCode, QProcess::ExitStatus exitStatus){
-        Q_UNUSED(exitStatus);
 
-        ui->statusBar->showMessage("cURL-Prozess gestartet...");
-
+    // connect(curlProcess, &QProcess::finished, this, [this, curlProcess, tempPath]() {
+    connect(curlProcess, &QProcess::finished, this,
+            [this, curlProcess, tempPath, buttonGuard = std::move(buttonGuard)]() mutable {
         QByteArray output = curlProcess->readAllStandardOutput().trimmed();
         QByteArray error = curlProcess->readAllStandardError();
-
         curlProcess->deleteLater();
 
-        if (exitCode != 0 || output.isEmpty()) {
+        if (output.isEmpty()) {
             QMessageBox::warning(this, "Fehler", "Upload fehlgeschlagen:\n" + QString(error));
+            qDebug() << "Upload fehlgeschlagen: " << error;
             return;
-        } else {
-            ui->statusBar->showMessage(QString("Bild erfolgreich hochgeladen: %1").arg(output));
         }
 
-        QString url(output);
-        qDebug() << "Litterbox URL: " << url;
-        ui->lineEditLitterboxURL->setEnabled(true);
-        ui->lineEditLitterboxURL->setText(url);
+        // QString url = QString::fromUtf8(output);
+        QString url = QString::fromUtf8(output).trimmed();
 
-        // Öffne Tineye-Suche
-        QString tineyeUrl = QString("https://tineye.com/search?url=%1")
-                                .arg(QUrl::toPercentEncoding(url));
-        QDesktopServices::openUrl(QUrl(tineyeUrl));
-        ui->statusBar->showMessage("Tineye-Suche aufgerufen.",7000);
+        // Ist das überhaupt eine URL?
+        if (!url.startsWith("http")) {
+            //Bisschen lang für die MessageBox, wenn eine Fehlerseite mit dem ganzen Code geliefert wird. Evtl. ändern.
+            QMessageBox::warning(this, "Fehler", "Upload fehlgeschlagen oder keine gültige URL erhalten:\n" + url);
+            qDebug() << "Ungültige Upload-Antwort: " << url;
+            return;
+        }
+
+        ui->lineEditLitterboxURL->setText(url);
+        ui->lineEditLitterboxURL->setEnabled(true);
+        ui->statusBar->showMessage(QString("Upload abgeschlossen: %1").arg(url));
+        qDebug() << "Upload abgeschlossen: " << url;
+
+        QUrl qurl(url);
+        QString urlCopy = url;
+
+        // Lambda zur wiederholten Prüfung der Verfügbarkeit
+        std::shared_ptr<std::function<void()>> checkAvailability = std::make_shared<std::function<void()>>();
+        *checkAvailability = [this, qurl, urlCopy, checkAvailability]() {
+            qDebug() << "Verfügbarkeitsprüfung gestartet...";
+            QNetworkRequest request(qurl);
+            QNetworkReply *reply = m_networkManager.head(request);
+
+            connect(reply, &QNetworkReply::finished, this, [this, reply, urlCopy, checkAvailability]() {
+                if (reply->error() == QNetworkReply::NoError) {
+                    qDebug() << "Netzwerkantwort erhalten, Bild erreichbar.";
+                    QString tineyeUrl = QString("https://tineye.com/search?url=%1")
+                    .arg(QUrl::toPercentEncoding(urlCopy));
+                    QDesktopServices::openUrl(QUrl(tineyeUrl));
+                    ui->statusBar->showMessage("Tineye-Suche geöffnet.", 7000);
+                    qDebug() << "Tineye geöffnet";
+                } else {
+                    ui->statusBar->showMessage("Prüfe Erreichbarkeit des Bildes erneut...");
+                    qDebug() << "Prüfe Erreichbarkeit des Bildes im Netz...";
+                    QTimer::singleShot(500, this, [checkAvailability]() { (*checkAvailability)(); });
+                }
+                reply->deleteLater();
+            });
+        };
+
+        // Start der ersten Prüfung sofort
+        (*checkAvailability)();
+
+        // Temporäre JPEG-Kopie löschen, falls vorhanden
+        QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+        if (tempPath.startsWith(tempDir)) {
+            QFile::remove(tempPath);
+            qDebug() << "Temporäre JPEG-Datei gelöscht:" << tempPath;
+        } else {
+            qDebug() << "Kein temporäres Bild, nichts gelöscht:" << tempPath;
+        }
     });
 
     curlProcess->start("curl", arguments);
+
+
 }
 
 
+//Nicht unterstütztes Format für die Suchmaschine temporär umwandeln
+QString MainWindow::convertJfifToJpeg(const QString &path)
+{
+    QFileInfo fi(path);
+    if (fi.suffix().compare("jfif", Qt::CaseInsensitive) != 0)
+        return path; // Keine JFIF-Datei, keine Umwandlung
 
+    QImage image(path);
+    if (image.isNull()) {
+        qDebug() << "Bild konnte nicht geladen werden:" << path;
+        return path;
+    }
+
+    // Temporäre Datei im System-Temp-Ordner erzeugen
+    QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    QTemporaryFile tempFile(tempDir + "/temp_jfif_XXXXXX.jpg");
+    tempFile.setAutoRemove(false); // Wir löschen selbst nach Upload
+
+    if (!tempFile.open()) {
+        qDebug() << "Temporäre Datei konnte nicht erzeugt werden.";
+        return path;
+    }
+
+    QString tempPath = tempFile.fileName();
+    tempFile.close();
+
+    if (image.save(tempPath, "JPG")) {
+        qDebug() << "JFIF temporär in JPEG umgewandelt:" << tempPath;
+        return tempPath;
+    } else {
+        qDebug() << "Fehler beim Speichern der temporären JPEG-Datei.";
+        return path;
+    }
+}

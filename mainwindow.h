@@ -11,8 +11,8 @@
 #include <QWidget>
 #include <QMouseEvent>
 #include <QTimer>
-//#include <QImageReader>
 #include <QLocale>
+#include <QNetworkAccessManager>
 
 
 
@@ -69,8 +69,8 @@ private:
     void systemspracheEinstellen();
     QTimer *timer;
     void progInfoSetzen();
-
-
+    QNetworkAccessManager m_networkManager;
+    QString convertJfifToJpeg(const QString &path);
 
 
 };
