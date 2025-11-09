@@ -1,5 +1,22 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QMessageBox>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QHttpMultiPart>
+#include <QHttpPart>
+#include <QHttpMultiPart>
+#include <QDesktopServices>
+#include <QFile>
+#include <QUrl>
+#include <QUrlQuery>
+#include <QDebug>
+#include <QFileInfo>
+#include <QMimeDatabase>
+#include <QRegularExpression>
+#include <QProcess>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -178,7 +195,7 @@ void MainWindow::on_checkBox_stateChanged(int arg1)
 // }
 
 
-void MainWindow::on_pushButtonEnglisch_clicked()
+void MainWindow::setzeSpracheEnglisch()
 {
     ui->pushButton->setText("Read path");
     ui->pushButton->setToolTip("Reads the path of the current desktop wallpaper from the registry.");
@@ -192,11 +209,18 @@ void MainWindow::on_pushButtonEnglisch_clicked()
     ui->pushButton_5->setToolTip("Click to open image in system image viewer.");
     ui->checkBox->setText("Reload automatically");
     ui->checkBox->setToolTip("If activated, the programme automatically reads the current background image every second.");
+    ui->comboBoxSprache->setToolTip("Language");
+    ui->pushButtonSuchmaschine->setText("Web Search");
+    ui->pushButtonSuchmaschine->setToolTip("The image is temporarily uploaded to litterbox.catbox.moe via cURL "
+                                           "in order to perform an image search on tineye.com. After one hour, "
+                                           "the image is deleted from Litterbox.");
+    ui->lineEditLitterboxURL->setPlaceholderText("Litterbox URL");
+    ui->lineEditLitterboxURL->setToolTip("URL of the uploaded image (available for 1 hour)");
     qDebug() << "Englisch festgelegt";
 }
 
 
-void MainWindow::on_pushButtonDeutsch_clicked()
+void MainWindow::setzeSpracheDeutsch()
 {
         ui->pushButton->setText("Pfad auslesen");
         ui->pushButton->setToolTip("Liest den Pfad des aktuellen Desktop-Hintergrundbildes aus der Registry.");
@@ -210,11 +234,18 @@ void MainWindow::on_pushButtonDeutsch_clicked()
         ui->pushButton_5->setToolTip("Klicken um Bild im System-Bildbetrachter zu öffnen.");
         ui->checkBox->setText("Kontinuierlich abgleichen");
         ui->checkBox->setToolTip("Wenn aktiviert, liest das Programm das aktuelle Hintergrundbild selbständig im Sekundentakt ein.");
+        ui->comboBoxSprache->setToolTip("Sprache");
+        ui->pushButtonSuchmaschine->setText("Suche im Netz");
+        ui->pushButtonSuchmaschine->setToolTip("Lädt das Bild via cURL temporär auf litterbox.catbox.moe hoch, "
+                                               "um eine Bildersuche über tineye.com durchzuführen. Nach 1 Stunde "
+                                               "wird das Bild von Litterbox wieder gelöscht.");
+        ui->lineEditLitterboxURL->setPlaceholderText("Litterbox-URL");
+        ui->lineEditLitterboxURL->setToolTip("URL zum hochgeladenen Bild (1 Stunde verfügbar)");
         qDebug() << "Deutsch festgelegt";
 }
 
 
-void MainWindow::on_pushButtonFranzoesisch_clicked()
+void MainWindow::setzeSpracheFranzoesisch()
 {
     ui->pushButton->setText("Lire le chemin");
     ui->pushButton->setToolTip("Lit le chemin du fond d'écran actuel à partir du registre.");
@@ -228,6 +259,14 @@ void MainWindow::on_pushButtonFranzoesisch_clicked()
     ui->pushButton_5->setToolTip("Cliquez pour ouvrir l'image dans la visionneuse d'images système.");
     ui->checkBox->setText("Synchroniser automatiquement");
     ui->checkBox->setToolTip("Lorsqu'il est activé, le programme lit automatiquement l'arrière-plan actuel à intervalles d'une seconde.");
+    ui->comboBoxSprache->setToolTip("Langue");
+    ui->pushButtonSuchmaschine->setText("Recherche Net");
+    ui->pushButtonSuchmaschine->setToolTip("L'image est temporairement téléchargée sur litterbox.catbox.moe "
+                                           "via cURL afin d'effectuer une recherche d'image sur tineye.com. "
+                                           "Après 1 heure, l'image est supprimée de Litterbox.");
+    ui->lineEditLitterboxURL->setPlaceholderText("URL Litterbox");
+    ui->lineEditLitterboxURL->setToolTip("URL de l'image téléchargée (disponible pendant 1 heure)");
+
     qDebug() << "Französisch festgelegt";
 }
 
@@ -236,14 +275,14 @@ void MainWindow::systemspracheEinstellen(){
     QLocale systemLocale = QLocale::system();
 
     if (systemLocale.language() == QLocale::German) {
-        on_pushButtonDeutsch_clicked();
+        setzeSpracheDeutsch();
     } else if (systemLocale.language() == QLocale::English) {
-        on_pushButtonEnglisch_clicked();
+        setzeSpracheEnglisch();
     } else if (systemLocale.language() == QLocale::French){
-        on_pushButtonFranzoesisch_clicked();
+        setzeSpracheFranzoesisch();
     } else {
         qDebug() << "Systemsprache nicht verfügbar";
-        on_pushButtonDeutsch_clicked();
+        setzeSpracheDeutsch();
     }
 }
 
@@ -251,11 +290,11 @@ void MainWindow::systemspracheEinstellen(){
 void MainWindow::on_comboBoxSprache_currentIndexChanged(int index)
 {
     if (index == 0){
-        on_pushButtonDeutsch_clicked();
+        setzeSpracheDeutsch();
     } else if (index == 1){
-        on_pushButtonFranzoesisch_clicked();
+        setzeSpracheFranzoesisch();
     } else if (index == 2){
-        on_pushButtonEnglisch_clicked();
+        setzeSpracheEnglisch();
     } else {
         return;
     }
@@ -269,4 +308,69 @@ void MainWindow::progInfoSetzen(){
     QCoreApplication::setApplicationVersion(QString(APP_VERSION));
     this->setWindowTitle(QString("%1 v%2").arg(APP_NAME, APP_VERSION));
 }
+
+
+void MainWindow::on_pushButtonSuchmaschine_clicked()
+{
+    ui->statusBar->showMessage("Bildersuche gestartet...");
+    QString imagePath = ui->lineEdit->text().trimmed();
+    imagePath.remove('"'); // Entfernt mögliche Anführungszeichen
+    if (imagePath.isEmpty()) {
+        QMessageBox::warning(this, "Fehler", "Kein Bildpfad vorhanden.");
+        return;
+    } else {
+        ui->statusBar->showMessage("Pfad gefunden...");
+    }
+
+    QFileInfo fi(imagePath);
+    if (!fi.exists() || !fi.isFile()) {
+        QMessageBox::warning(this, "Fehler", "Bilddatei existiert nicht.");
+        return;
+    } else {
+        ui->statusBar->showMessage("Lokale Datei gefunden...");
+    }
+
+    // curl-Befehl zusammenbauen
+    QStringList arguments;
+    arguments << "-F" << QString("reqtype=fileupload")
+              << "-F" << QString("time=1h")
+              << "-F" << QString("fileToUpload=@%1").arg(imagePath)
+              << "https://litterbox.catbox.moe/resources/internals/api.php";
+
+    ui->statusBar->showMessage("cURL-Befehl zusammengestellt...");
+
+    QProcess *curlProcess = new QProcess(this);
+    connect(curlProcess, &QProcess::finished, this, [=](int exitCode, QProcess::ExitStatus exitStatus){
+        Q_UNUSED(exitStatus);
+
+        ui->statusBar->showMessage("cURL-Prozess gestartet...");
+
+        QByteArray output = curlProcess->readAllStandardOutput().trimmed();
+        QByteArray error = curlProcess->readAllStandardError();
+
+        curlProcess->deleteLater();
+
+        if (exitCode != 0 || output.isEmpty()) {
+            QMessageBox::warning(this, "Fehler", "Upload fehlgeschlagen:\n" + QString(error));
+            return;
+        } else {
+            ui->statusBar->showMessage(QString("Bild erfolgreich hochgeladen: %1").arg(output));
+        }
+
+        QString url(output);
+        qDebug() << "Litterbox URL: " << url;
+        ui->lineEditLitterboxURL->setEnabled(true);
+        ui->lineEditLitterboxURL->setText(url);
+
+        // Öffne Tineye-Suche
+        QString tineyeUrl = QString("https://tineye.com/search?url=%1")
+                                .arg(QUrl::toPercentEncoding(url));
+        QDesktopServices::openUrl(QUrl(tineyeUrl));
+        ui->statusBar->showMessage("Tineye-Suche aufgerufen.",7000);
+    });
+
+    curlProcess->start("curl", arguments);
+}
+
+
 

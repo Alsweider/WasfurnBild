@@ -1,4 +1,5 @@
-QT       += core gui
+QT       += core gui widgets network
+
 
 TARGET      =   WasfurnBild
 
@@ -28,7 +29,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     bilder.qrc
 
-VERSION     =   0.1.1
+VERSION     =   0.2.0
 
 DEFINES     +=  APP_VERSION=\\\"$$VERSION\\\"
 DEFINES     += APP_NAME=\\\"$$TARGET\\\"

@@ -50,13 +50,15 @@ private slots:
 
     void on_checkBox_stateChanged(int arg1);
 
-    void on_pushButtonEnglisch_clicked();
+    void setzeSpracheEnglisch();
 
-    void on_pushButtonDeutsch_clicked();
+    void setzeSpracheDeutsch();
 
-    void on_pushButtonFranzoesisch_clicked();
+    void setzeSpracheFranzoesisch();
 
     void on_comboBoxSprache_currentIndexChanged(int index);
+
+    void on_pushButtonSuchmaschine_clicked();
 
 private:
     Ui::MainWindow *ui;
