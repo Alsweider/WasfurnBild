@@ -29,7 +29,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     bilder.qrc
 
-VERSION     =   0.2.2
+VERSION     =   0.2.3
 
 DEFINES     +=  APP_VERSION=\\\"$$VERSION\\\"
 DEFINES     += APP_NAME=\\\"$$TARGET\\\"

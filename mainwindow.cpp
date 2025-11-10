@@ -221,6 +221,8 @@ void MainWindow::setzeSpracheEnglisch()
                                            "the image is deleted from Litterbox.");
     ui->lineEditLitterboxURL->setPlaceholderText("Litterbox URL");
     ui->lineEditLitterboxURL->setToolTip("URL of the uploaded image (available for 1 hour)");
+    ui->checkBoxNichtFragen->setText("Do not ask");
+    ui->checkBoxNichtFragen->setToolTip("Disable safety prompt before upload");
     qDebug() << "Englisch festgelegt";
 }
 
@@ -246,6 +248,9 @@ void MainWindow::setzeSpracheDeutsch()
                                                "wird das Bild von Litterbox wieder gelöscht.");
         ui->lineEditLitterboxURL->setPlaceholderText("Litterbox-URL");
         ui->lineEditLitterboxURL->setToolTip("URL zum hochgeladenen Bild (1 Stunde verfügbar)");
+        ui->checkBoxNichtFragen->setText("Nicht mehr fragen");
+        ui->checkBoxNichtFragen->setToolTip("Sicherheitsfrage vor dem Hochladen abschalten");
+
         qDebug() << "Deutsch festgelegt";
 }
 
@@ -271,6 +276,8 @@ void MainWindow::setzeSpracheFranzoesisch()
                                            "Après 1 heure, l'image est supprimée de Litterbox.");
     ui->lineEditLitterboxURL->setPlaceholderText("URL Litterbox");
     ui->lineEditLitterboxURL->setToolTip("URL de l'image téléchargée (disponible pendant 1 heure)");
+    ui->checkBoxNichtFragen->setText("Ne plus demander");
+    ui->checkBoxNichtFragen->setToolTip("Désactiver la demande de confirmation avant le téléchargement");
 
     qDebug() << "Französisch festgelegt";
 }
@@ -317,6 +324,77 @@ void MainWindow::progInfoSetzen(){
 
 void MainWindow::on_pushButtonSuchmaschine_clicked()
 {
+    //Sicherheitsfrage vor dem Hochladen
+    if (ui->checkBoxNichtFragen->isChecked()){
+        bilderSuche();
+        return;
+    }
+
+    // Texte für alle Sprachen definieren
+    struct MessageTexts {
+        const char* title;
+        const char* text;
+        const char* yesButton;
+        const char* noButton;
+    };
+
+    // 0 = Deutsch, 1 = Französisch, 2 = Englisch
+    const MessageTexts messages[3] = {
+        { "Bildsuche starten?",
+         "Das Bild wird temporär auf den Bilderdienst litterbox.catbox.moe hochgeladen, "
+         "wobei auch Ihre IP-Adresse übermittelt wird.\n"
+         "Das ist nötig, da TinEye.com ein im Netz verfügbares Bild erwartet, "
+         "um die Bildsuche starten zu können.\n"
+         "Nach 1 Stunde wird das Bild von Catbox wieder gelöscht. TinEye selbst versichert, "
+         "keine Bilder zu speichern.\n\n"
+         "Möchten Sie die Bildsuche starten?",
+         "Ja", "Nein" },
+
+        { "Lancer la recherche d'image ?",
+         "L'image sera temporairement téléchargée sur le service d'images litterbox.catbox.moe, "
+         "et votre adresse IP sera également transmise.\n"
+         "Cela est nécessaire car TinEye.com attend une image disponible en ligne "
+         "pour pouvoir lancer la recherche.\n"
+         "Après 1 heure, l'image sera supprimée de Catbox. TinEye assure qu'il ne stocke aucune image.\n\n"
+         "Voulez-vous lancer la recherche d'image ?",
+         "Oui", "Non" },
+
+        { "Start image search?",
+         "The image will be temporarily uploaded to the image service litterbox.catbox.moe, "
+         "and your IP address will also be transmitted.\n"
+         "This is necessary because TinEye.com expects an image available online "
+         "to perform the image search.\n"
+         "After 1 hour, the image will be deleted from Catbox. TinEye itself assures "
+         "that it does not store any images.\n\n"
+         "Do you want to start the image search?",
+         "Yes", "No" }
+    };
+
+    // Sprache auswählen
+    int langIndex = ui->comboBoxSprache->currentIndex();
+    if (langIndex < 0 || langIndex > 2){
+        langIndex = 0; // Standard Deutsch
+    }
+
+    const auto& msg = messages[langIndex];
+
+    // MessageBox mit eigenen Buttons
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr(msg.title));
+    msgBox.setText(tr(msg.text));
+
+    QPushButton* yesButton = msgBox.addButton(tr(msg.yesButton), QMessageBox::YesRole);
+    QPushButton* noButton  = msgBox.addButton(tr(msg.noButton), QMessageBox::NoRole);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == yesButton) {
+        bilderSuche();
+    }
+}
+
+
+void MainWindow::bilderSuche(){
     ui->pushButtonSuchmaschine->setEnabled(false);
     ui->statusBar->showMessage("Bildsuche gestartet...");
 
@@ -359,96 +437,96 @@ void MainWindow::on_pushButtonSuchmaschine_clicked()
 
     connect(curlProcess, &QProcess::finished, this,
             [this, curlProcess, tempPath, buttonGuard = std::move(buttonGuard)]() mutable {
-        QByteArray output = curlProcess->readAllStandardOutput().trimmed();
-        QByteArray error = curlProcess->readAllStandardError();
-        curlProcess->deleteLater();
+                QByteArray output = curlProcess->readAllStandardOutput().trimmed();
+                QByteArray error = curlProcess->readAllStandardError();
+                curlProcess->deleteLater();
 
-        if (output.isEmpty()) {
-            QMessageBox::warning(this, "Fehler", "Upload fehlgeschlagen:\n" + QString(error));
-            qDebug() << "Upload fehlgeschlagen: " << error;
-            return;
-        }
-
-        // QString url = QString::fromUtf8(output);
-        QString url = QString::fromUtf8(output).trimmed();
-
-        // Ist das überhaupt eine URL?
-        if (!url.startsWith("http")) {
-            QString shortMsg = url.left(200); // Nur die ersten 200 Zeichen für Anzeige, sonst kommt die ganze Verwandtschaft
-            if (url.length() > 200)
-                shortMsg += "...";
-
-            QMessageBox::warning(
-                this,
-                "Fehler",
-                "Upload fehlgeschlagen oder keine gültige URL erhalten.\n\n"
-                "Serverantwort (gekürzt):\n" + shortMsg
-                );
-
-            qDebug() << "Ungültige Upload-Antwort (vollständig):" << url;
-            return;
-        }
-
-        ui->lineEditLitterboxURL->setText(url);
-        ui->lineEditLitterboxURL->setEnabled(true);
-        ui->statusBar->showMessage(QString("Upload abgeschlossen: %1").arg(url));
-        qDebug() << "Upload abgeschlossen: " << url;
-
-        QUrl qurl(url);
-        QString urlCopy = url;
-
-        // Lambda zur wiederholten Prüfung der Verfügbarkeit
-        std::shared_ptr<std::function<void()>> checkAvailability = std::make_shared<std::function<void()>>();
-
-        int maxAttempts = 10;
-        int delayMs = 500; // Startwert für die Wartezeit
-        int maxDelayMs = 6000;
-        int attemptCount = 0;
-
-        *checkAvailability = [this, qurl, urlCopy, checkAvailability, maxAttempts, &attemptCount, delayMs, maxDelayMs]() mutable {
-            if (attemptCount >= maxAttempts) {
-                ui->statusBar->showMessage("Bild nach mehreren Versuchen nicht erreichbar.");
-                qDebug() << "Maximale Anzahl der Prüfungen erreicht.";
-                return;
-            }
-            attemptCount++;
-            qDebug() << "Verfügbarkeitsprüfung Versuch:" << attemptCount;
-
-            QNetworkRequest request(qurl);
-            QNetworkReply *reply = m_networkManager.head(request);
-
-            connect(reply, &QNetworkReply::finished, this, [this, reply, urlCopy, checkAvailability, &attemptCount, &delayMs, maxDelayMs, maxAttempts]() mutable {
-                if (reply->error() == QNetworkReply::NoError) {
-                    qDebug() << "Netzwerkantwort erhalten, Bild erreichbar.";
-                    QString tineyeUrl = QString("https://tineye.com/search?url=%1")
-                    .arg(QUrl::toPercentEncoding(urlCopy));
-                    QDesktopServices::openUrl(QUrl(tineyeUrl));
-                    ui->statusBar->showMessage("Tineye-Suche geöffnet.", 7000);
-                    qDebug() << "Tineye geöffnet";
-                } else {
-                    QString statusMsg = QString("Prüfe Erreichbarkeit des Bildes erneut... Versuch %1/%2").arg(attemptCount, maxAttempts);
-                    ui->statusBar->showMessage(statusMsg);
-                    qDebug() << "Fehler beim Zugriff, erneute Prüfung in" << delayMs << "ms";
-                    // Exponentielles Backoff: Verzögerung verdoppeln, bis zu 6 Sekunden
-                    delayMs = qMin(delayMs * 2, maxDelayMs);
-                    QTimer::singleShot(delayMs, this, [checkAvailability]() { (*checkAvailability)(); });
+                if (output.isEmpty()) {
+                    QMessageBox::warning(this, "Fehler", "Upload fehlgeschlagen:\n" + QString(error));
+                    qDebug() << "Upload fehlgeschlagen: " << error;
+                    return;
                 }
-                reply->deleteLater();
+
+                // QString url = QString::fromUtf8(output);
+                QString url = QString::fromUtf8(output).trimmed();
+
+                // Ist das überhaupt eine URL?
+                if (!url.startsWith("http")) {
+                    QString shortMsg = url.left(200); // Nur die ersten 200 Zeichen für Anzeige, sonst kommt die ganze Verwandtschaft
+                    if (url.length() > 200)
+                        shortMsg += "...";
+
+                    QMessageBox::warning(
+                        this,
+                        "Fehler",
+                        "Upload fehlgeschlagen oder keine gültige URL erhalten.\n\n"
+                        "Serverantwort (gekürzt):\n" + shortMsg
+                        );
+
+                    qDebug() << "Ungültige Upload-Antwort (vollständig):" << url;
+                    return;
+                }
+
+                ui->lineEditLitterboxURL->setText(url);
+                ui->lineEditLitterboxURL->setEnabled(true);
+                ui->statusBar->showMessage(QString("Upload abgeschlossen: %1").arg(url));
+                qDebug() << "Upload abgeschlossen: " << url;
+
+                QUrl qurl(url);
+                QString urlCopy = url;
+
+                // Lambda zur wiederholten Prüfung der Verfügbarkeit
+                std::shared_ptr<std::function<void()>> checkAvailability = std::make_shared<std::function<void()>>();
+
+                int maxAttempts = 10;
+                int delayMs = 500; // Startwert für die Wartezeit
+                int maxDelayMs = 6000;
+                int attemptCount = 0;
+
+                *checkAvailability = [this, qurl, urlCopy, checkAvailability, maxAttempts, &attemptCount, delayMs, maxDelayMs]() mutable {
+                    if (attemptCount >= maxAttempts) {
+                        ui->statusBar->showMessage("Bild nach mehreren Versuchen nicht erreichbar.");
+                        qDebug() << "Maximale Anzahl der Prüfungen erreicht.";
+                        return;
+                    }
+                    attemptCount++;
+                    qDebug() << "Verfügbarkeitsprüfung Versuch:" << attemptCount;
+
+                    QNetworkRequest request(qurl);
+                    QNetworkReply *reply = m_networkManager.head(request);
+
+                    connect(reply, &QNetworkReply::finished, this, [this, reply, urlCopy, checkAvailability, &attemptCount, &delayMs, maxDelayMs, maxAttempts]() mutable {
+                        if (reply->error() == QNetworkReply::NoError) {
+                            qDebug() << "Netzwerkantwort erhalten, Bild erreichbar.";
+                            QString tineyeUrl = QString("https://tineye.com/search?url=%1")
+                                                    .arg(QUrl::toPercentEncoding(urlCopy));
+                            QDesktopServices::openUrl(QUrl(tineyeUrl));
+                            ui->statusBar->showMessage("Tineye-Suche geöffnet.", 7000);
+                            qDebug() << "Tineye geöffnet";
+                        } else {
+                            QString statusMsg = QString("Prüfe Erreichbarkeit des Bildes erneut... Versuch %1/%2").arg(attemptCount, maxAttempts);
+                            ui->statusBar->showMessage(statusMsg);
+                            qDebug() << "Fehler beim Zugriff, erneute Prüfung in" << delayMs << "ms";
+                            // Exponentielles Backoff: Verzögerung verdoppeln, bis zu 6 Sekunden
+                            delayMs = qMin(delayMs * 2, maxDelayMs);
+                            QTimer::singleShot(delayMs, this, [checkAvailability]() { (*checkAvailability)(); });
+                        }
+                        reply->deleteLater();
+                    });
+                };
+
+                // Start der ersten Prüfung sofort
+                (*checkAvailability)();
+
+                // Temporäre JPEG-Kopie löschen, falls vorhanden
+                QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+                if (tempPath.startsWith(tempDir)) {
+                    QFile::remove(tempPath);
+                    qDebug() << "Temporäre JPEG-Datei gelöscht:" << tempPath;
+                } else {
+                    qDebug() << "Kein temporäres Bild, nichts gelöscht:" << tempPath;
+                }
             });
-        };
-
-        // Start der ersten Prüfung sofort
-        (*checkAvailability)();
-
-        // Temporäre JPEG-Kopie löschen, falls vorhanden
-        QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-        if (tempPath.startsWith(tempDir)) {
-            QFile::remove(tempPath);
-            qDebug() << "Temporäre JPEG-Datei gelöscht:" << tempPath;
-        } else {
-            qDebug() << "Kein temporäres Bild, nichts gelöscht:" << tempPath;
-        }
-    });
 
     curlProcess->start("curl", arguments);
 }

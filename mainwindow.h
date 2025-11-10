@@ -71,7 +71,6 @@ private:
     void progInfoSetzen();
     QNetworkAccessManager m_networkManager;
     QString convertJfifToJpeg(const QString &path);
-
-
+    void bilderSuche();
 };
 #endif // MAINWINDOW_H
